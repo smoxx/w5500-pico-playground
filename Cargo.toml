@@ -1,0 +1,18 @@
+[package]
+name = "pico-playground"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+embassy-executor = "=0.10.0"
+embassy-time = "=0.5.1"
+
+embassy-rp = { version = "=0.10.0", features = [
+  "rp2040",
+  "time-driver",
+  "critical-section-impl",
+  "executor-thread",
+] }
+
+cortex-m-rt = "0.7.7"
+panic-halt = "1.0.0"
