@@ -61,16 +61,18 @@ pub(crate) async fn button_task(mut bootsel: Peri<'static, BOOTSEL>) {
 async fn run_led(led: &mut Output<'_>, mode: Mode) {
     led.set_low();
 
-    match mode {
-        Mode::Heartbeat => beat(led, 100).await,
-        Mode::Slow => beat(led, 500).await,
-        Mode::On => {
-            led.set_high();
-            Timer::after_millis(100).await;
-        }
-        Mode::Off => {
-            led.set_low();
-            Timer::after_millis(100).await;
+    loop {
+        match mode {
+            Mode::Heartbeat => beat(led, 100).await,
+            Mode::Slow => beat(led, 500).await,
+            Mode::On => {
+                led.set_high();
+                Timer::after_millis(100).await;
+            }
+            Mode::Off => {
+                led.set_low();
+                Timer::after_millis(100).await;
+            }
         }
     }
 }
