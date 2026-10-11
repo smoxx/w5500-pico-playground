@@ -1,18 +1,16 @@
 #![no_std]
 #![no_main]
 
+mod button;
 mod led;
+
+use button::wait_for_press;
 use led::{Mode, run_led};
 
 use embassy_executor::Spawner;
 use embassy_futures::select::{Either, select};
-use embassy_rp::{
-    Peri,
-    bootsel::is_bootsel_pressed,
-    gpio::{Level, Output},
-    peripherals::BOOTSEL,
-};
-use embassy_time::{Duration, Instant, Timer};
+use embassy_rp::gpio::{Level, Output};
+use embassy_time::Duration;
 
 use panic_halt as _;
 
@@ -43,33 +41,4 @@ async fn main(_spawner: Spawner) {
             }
         }
     }
-}
-
-async fn wait_for_press(bootsel: &mut Peri<'_, BOOTSEL>) -> Duration {
-    loop {
-        if is_bootsel_pressed(bootsel.reborrow()) {
-            Timer::after_millis(30).await;
-
-            if is_bootsel_pressed(bootsel.reborrow()) {
-                break;
-            }
-        }
-
-        Timer::after_millis(20).await;
-    }
-
-    let started = Instant::now();
-
-    loop {
-        if !is_bootsel_pressed(bootsel.reborrow()) {
-            Timer::after_millis(30).await;
-
-            if !is_bootsel_pressed(bootsel.reborrow()) {
-                break;
-            }
-        }
-
-        Timer::after_millis(20).await
-    }
-    started.elapsed()
 }
