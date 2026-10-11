@@ -2,43 +2,35 @@
 #![no_main]
 
 mod button;
-mod led;
+mod control;
 
-use button::wait_for_press;
-use led::{Mode, run_led};
+use control::{button_task, led_task};
 
 use embassy_executor::Spawner;
-use embassy_futures::select::{Either, select};
 use embassy_rp::gpio::{Level, Output};
-use embassy_time::Duration;
 
 use panic_halt as _;
+
+use embassy_sync::{blocking_mutex::raw::CriticalSectionRawMutex, channel::Channel};
+
+enum Command {
+    Next,
+    Bootloader,
+}
+
+static COMMANDS: Channel<CriticalSectionRawMutex, Command, 8> = Channel::new();
 
 #[embassy_executor::main(
     executor = "embassy_rp::executor::Executor",
     entry = "cortex_m_rt::entry"
 )]
-async fn main(_spawner: Spawner) {
+async fn main(spawner: Spawner) {
     let peripherals = embassy_rp::init(Default::default());
 
-    let mut led = Output::new(peripherals.PIN_25, Level::Low);
-    let mut bootsel = peripherals.BOOTSEL;
-    let mut mode = Mode::Heartbeat;
+    let led = Output::new(peripherals.PIN_25, Level::Low);
 
-    loop {
-        let result = select(run_led(&mut led, mode), wait_for_press(&mut bootsel)).await;
+    spawner.spawn(led_task(led).unwrap());
+    spawner.spawn(button_task(peripherals.BOOTSEL).unwrap());
 
-        if let Either::Second(duration) = result {
-            if duration >= Duration::from_secs(1) {
-                led.set_low();
-                embassy_rp::rom_data::reset_to_usb_boot(0, 0);
-            } else {
-                mode = match mode {
-                    Mode::Heartbeat => Mode::Slow,
-                    Mode::Slow => Mode::On,
-                    Mode::On => Mode::Heartbeat,
-                }
-            }
-        }
-    }
+    core::future::pending::<()>().await;
 }
