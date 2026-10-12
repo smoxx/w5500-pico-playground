@@ -27,12 +27,13 @@ impl Mode {
     }
 }
 
-enum Command {
+pub(crate) enum Command {
     Next,
+    Set(Mode),
     Bootloader,
 }
 
-static COMMANDS: Channel<CriticalSectionRawMutex, Command, 8> = Channel::new();
+pub(crate) static COMMANDS: Channel<CriticalSectionRawMutex, Command, 8> = Channel::new();
 
 pub fn pwm_config() -> Config {
     let mut config = Config::default();
@@ -103,6 +104,7 @@ pub(crate) async fn led_task(mut pwm: Pwm<'static>) {
         match select(run_led(&mut pwm, &mut config, mode), COMMANDS.receive()).await {
             Either::First(()) => unreachable!(),
             Either::Second(Command::Next) => mode = mode.next(),
+            Either::Second(Command::Set(set_mode)) => mode = set_mode,
             Either::Second(Command::Bootloader) => {
                 config.compare_b = 0;
                 pwm.set_config(&config);

@@ -4,6 +4,7 @@
 mod button;
 mod control;
 mod network;
+mod udp;
 
 use control::{button_task, led_task};
 
@@ -40,7 +41,7 @@ async fn main(spawner: Spawner) {
     )
     .await;
 
-    stack.wait_config_up().await;
+    spawner.spawn(udp::udp_task(stack).unwrap());
 
     core::future::pending::<()>().await;
 }
